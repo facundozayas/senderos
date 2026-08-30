@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Senderos</title>
+<meta name="theme-color" content="#2f6b4f" id="meta-theme-color">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=DM+Sans:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Themes ---------- */
+  .theme-green{
+    --bg:#f6f4ef; --card:#ffffff; --ink:#20221b; --muted:#7a7669;
+    --accent:#2f6b4f; --accent-ink:#ffffff; --accent-soft:#e9f0e4;
+    --danger:#b3432c; --border:#e6e2d5; --nav-inactive:#a39d8b;
+    --route-color:#b3432c; --track-color:#2f6b4f;
+    --font-heading:'Outfit',sans-serif; --font-body:'DM Sans',sans-serif; --font-mono:'DM Sans',sans-serif;
+    --radius-lg:20px; --radius-md:14px;
+  }
+  .theme-light{
+    --bg:#ffffff; --card:#f7f7f8; --ink:#16181a; --muted:#9a9ea3;
+    --accent:#16181a; --accent-ink:#ffffff; --accent-soft:#f2f3f4;
+    --danger:#b3432c; --border:#eceef0; --nav-inactive:#c1c3c6;
+    --route-color:#2f6460; --track-color:#2f6460;
+    --font-heading:'Manrope',sans-serif; --font-body:'Manrope',sans-serif; --font-mono:'Manrope',sans-serif;
+    --radius-lg:16px; --radius-md:12px;
+  }
+  .theme-dark{
+    --bg:#121316; --card:#191b1f; --ink:#eceef0; --muted:#7a7e85;
+    --accent:#f4b942; --accent-ink:#121316; --accent-soft:#242015;
+    --danger:#e0654a; --border:#212327; --nav-inactive:#5c6066;
+    --route-color:#f4b942; --track-color:#f4b942;
+    --font-heading:'Space Grotesk',sans-serif; --font-body:'Space Grotesk',sans-serif; --font-mono:'Space Mono',monospace;
+    --radius-lg:20px; --radius-md:16px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    font-family:var(--font-body);
+    background:var(--bg);color:var(--ink);
+    overscroll-behavior:none;
+    transition:background .2s;
+  }
+  #app{position:fixed;inset:0;display:flex;flex-direction:column;}
+
+  header{
+    padding:calc(env(safe-area-inset-top,0px) + 18px) 20px 8px;
+    display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  }
+  header h1{margin:0;font-family:var(--font-heading);font-weight:700;font-size:20px;letter-spacing:-.2px;color:var(--ink);}
+  header .sub{font-size:12px;color:var(--muted);margin-top:1px;}
+  .avatar{
+    width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+    display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-weight:700;font-size:13px;flex-shrink:0;
+  }
+
+  main{flex:1;position:relative;overflow:hidden;}
+  .view{position:absolute;inset:0;display:none;flex-direction:column;}
+  .view.active{display:flex;}
+
+  /* ---------- search ---------- */
+  .search-wrap{position:relative;padding:6px 20px 10px;}
+  .search-row{display:flex;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:4px 6px 4px 12px;}
+  .search-row svg{width:16px;height:16px;color:var(--muted);flex-shrink:0;}
+  .search-row input{flex:1;border:none;background:transparent;outline:none;font-family:var(--font-body);font-size:13.5px;color:var(--ink);padding:8px 4px;}
+  .search-row button{flex:none;width:auto;padding:8px 12px;font-size:12.5px;border-radius:9px;background:var(--accent);color:var(--accent-ink);}
+  .search-results{position:absolute;left:20px;right:20px;top:56px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:0 6px 20px rgba(0,0,0,.15);z-index:900;overflow:hidden;display:none;}
+  .search-results.active{display:block;}
+  .search-result-item{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border);cursor:pointer;}
+  .search-result-item:last-child{border-bottom:none;}
+  .search-result-item .name{font-weight:600;}
+  .search-result-item .sub{font-size:11px;color:var(--muted);margin-top:1px;}
+
+  /* ---------- activity selector ---------- */
+  .activity-row{display:flex;gap:8px;padding:6px 20px 14px;}
+  .activity-pill{
+    display:flex;align-items:center;gap:6px;padding:8px 13px;border-radius:18px;
+    background:var(--card);border:1px solid var(--border);color:var(--muted);
+    font-size:12.5px;font-weight:600;cursor:pointer;flex-shrink:0;
+  }
+  .activity-pill.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+  .activity-pill svg{width:15px;height:15px;flex-shrink:0;}
+
+  /* ---------- mode tabs ---------- */
+  .mode-tabs{display:flex;gap:6px;padding:0 20px 10px;}
+  .mode-tab{
+    flex:1;text-align:center;padding:9px;border-radius:12px;font-size:13px;font-weight:700;
+    background:var(--card);color:var(--muted);border:1px solid var(--border);cursor:pointer;
+  }
+  .mode-tab.active{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+
+  /* ---------- map ---------- */
+  #map{flex:1;width:100%;background:var(--accent-soft);border-radius:var(--radius-lg);margin:0 20px;overflow:hidden;}
+  .map-wrap{position:relative;flex:1;margin-bottom:10px;display:flex;}
+  .map-fab{
+    position:absolute;right:32px;z-index:500;
+    background:var(--card);border-radius:50%;width:42px;height:42px;border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.15);
+    padding:0;flex:none;
+  }
+  .map-fab svg{width:19px;height:19px;color:var(--accent);}
+  .map-fab.active{background:var(--accent);}
+  .map-fab.active svg{color:var(--accent-ink);}
+  #btn-locate{top:12px;}
+  #btn-trails-toggle{top:62px;}
+  #btn-download-area{top:112px;}
+  #btn-local-map-toggle{top:162px;}
+
+  .plan-banner{
+    position:absolute;left:32px;right:82px;top:12px;z-index:500;
+    background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:8px 12px;font-size:12px;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.12);
+  }
+
+  .stat-bar{display:flex;justify-content:space-around;padding:8px 8px 4px;flex-shrink:0;}
+  .stat{text-align:center;}
+  .stat b{display:block;font-family:var(--font-mono);font-size:19px;line-height:1.2;font-weight:700;}
+  .stat span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600;}
+
+  .elev-box{margin:8px 20px 0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;flex-shrink:0;}
+  .elev-box .row1{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .elev-box .row1 b{font-size:11.5px;}
+  .elev-box .row1 span{font-size:11px;color:var(--muted);font-family:var(--font-mono);}
+
+  .controls{display:flex;gap:10px;padding:14px 20px calc(env(safe-area-inset-bottom,0px) + 14px);flex-shrink:0;}
+  button{font-family:var(--font-heading);border:none;border-radius:var(--radius-md);padding:14px 16px;font-size:14.5px;font-weight:700;cursor:pointer;flex:1;}
+  .btn-primary{background:var(--accent);color:var(--accent-ink);}
+  .btn-danger{background:var(--danger);color:#fff;}
+  .btn-secondary{background:var(--card);color:var(--ink);border:1px solid var(--border);}
+  .btn-secondary:disabled{opacity:.45;}
+  .btn-primary:disabled{opacity:.45;}
+
+  /* ---------- history ---------- */
+  .view-header{padding:22px 20px 4px;}
+  .view-header h2{margin:0;font-family:var(--font-heading);font-weight:700;font-size:21px;}
+  .view-header .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  .filter-row{display:flex;gap:8px;padding:14px 20px 10px;overflow-x:auto;}
+  .filter-chip{padding:7px 14px;border-radius:16px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:600;flex-shrink:0;cursor:pointer;}
+  .filter-chip.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+
+  #history-list{flex:1;overflow-y:auto;padding:4px 20px 16px;}
+  .route-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:12px;}
+  .route-card .top{display:flex;gap:10px;}
+  .route-card .icon-badge{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .route-card .icon-badge svg{width:17px;height:17px;color:var(--accent);}
+  .route-card h3{margin:0;font-size:14px;font-family:var(--font-heading);font-weight:700;}
+  .route-card .meta{color:var(--muted);font-size:11.5px;margin-top:1px;}
+  .route-card .figures{display:flex;gap:18px;margin:12px 0 10px 2px;}
+  .route-card .figures div b{display:block;font-size:13.5px;font-family:var(--font-mono);font-weight:700;}
+  .route-card .figures div span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;font-weight:600;}
+  .route-card .row{display:flex;gap:8px;}
+  .route-card .row button{padding:8px 6px;font-size:12px;flex:1;border-radius:9px;font-weight:600;}
+  .route-card .badge-tag{display:inline-block;font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:8px;margin-left:6px;vertical-align:middle;}
+  .empty-state{text-align:center;color:var(--muted);padding:70px 24px;font-size:13.5px;line-height:1.5;}
+
+  /* ---------- stats ---------- */
+  .stats-section{margin-bottom:22px;}
+  .stats-section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+  .pace-row{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;}
+  .pace-row .icon-badge{width:32px;height:32px;border-radius:9px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pace-row .icon-badge svg{width:16px;height:16px;color:var(--accent);}
+  .pace-row .label{flex:1;font-size:13px;font-weight:600;}
+  .pace-row .value{font-family:var(--font-mono);font-weight:700;font-size:15px;}
+  .pace-row .value.muted{color:var(--muted);font-weight:600;font-size:12px;font-family:var(--font-body);}
+  .period-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;margin-bottom:10px;}
+  .period-card .period-title{font-size:13px;font-weight:700;margin-bottom:10px;}
+  .period-card .figures{display:flex;gap:20px;}
+  .period-card .figures div b{display:block;font-size:14.5px;font-family:var(--font-mono);font-weight:700;}
+  .period-card .figures div span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;font-weight:600;}
+  .record-card{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;cursor:pointer;}
+  .record-card .icon-badge{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .record-card .icon-badge svg{width:18px;height:18px;color:var(--accent);}
+  .record-card .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;font-weight:600;}
+  .record-card .value{font-family:var(--font-mono);font-weight:700;font-size:16px;margin-top:1px;}
+  .record-card .sub{font-size:11.5px;color:var(--muted);margin-top:1px;}
+
+  /* ---------- settings ---------- */
+  .settings-section{padding:18px 20px;}
+  .settings-section.tight{padding-top:0;}
+  .settings-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+  .settings-note{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px;}
+  .theme-option{
+    display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--radius-md);
+    border:1.5px solid var(--border);margin-bottom:10px;cursor:pointer;background:var(--card);
+  }
+  .theme-option.selected{border-color:var(--accent);}
+  .theme-swatch{width:44px;height:44px;border-radius:10px;flex-shrink:0;position:relative;overflow:hidden;}
+  .theme-option .name{font-weight:700;font-size:14px;}
+  .theme-option .desc{font-size:11.5px;color:var(--muted);margin-top:1px;}
+  .theme-option .check{margin-left:auto;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;}
+  .theme-option.selected .check{background:var(--accent);border-color:var(--accent);position:relative;}
+  .theme-option.selected .check::after{content:'';position:absolute;left:6px;top:2px;width:5px;height:9px;border:solid var(--accent-ink);border-width:0 2px 2px 0;transform:rotate(45deg);}
+  .settings-btn{width:100%;padding:13px;border-radius:var(--radius-md);background:var(--card);border:1px solid var(--border);color:var(--ink);font-weight:700;font-size:13.5px;font-family:var(--font-heading);margin-bottom:10px;}
+  .settings-btn:disabled{opacity:.45;}
+  .danger-btn{width:100%;padding:13px;border-radius:var(--radius-md);background:var(--card);border:1px solid var(--danger);color:var(--danger);font-weight:700;font-size:13.5px;font-family:var(--font-heading);}
+  .offline-summary{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:10px;font-size:12.5px;}
+  .offline-summary b{font-family:var(--font-mono);}
+
+  /* ---------- nav ---------- */
+  nav{display:flex;background:var(--card);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);}
+  nav button{flex:1;background:none;border-radius:0;padding:10px 0 8px;color:var(--nav-inactive);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:700;font-family:var(--font-body);}
+  nav button svg{width:19px;height:19px;}
+  nav button.active{color:var(--accent);}
+
+  /* ---------- modal ---------- */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center;z-index:1000;}
+  .modal-backdrop.active{display:flex;}
+  .modal{background:var(--card);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px);}
+  .modal h2{margin:0 0 12px;font-size:17px;font-family:var(--font-heading);color:var(--ink);}
+  .modal input, .modal select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:15px;margin-bottom:14px;font-family:var(--font-body);background:var(--bg);color:var(--ink);}
+  .modal .row{display:flex;gap:10px;}
+  .modal p{color:var(--muted);font-size:13px;}
+  .progress-track{height:8px;border-radius:5px;background:var(--border);overflow:hidden;margin:14px 0;}
+  .progress-fill{height:100%;background:var(--accent);width:0%;transition:width .15s;}
+
+  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:20px;font-size:13px;z-index:1500;opacity:0;transition:opacity .25s;pointer-events:none;max-width:88%;text-align:center;}
+  .toast.show{opacity:1;}
+
+  .leaflet-control-attribution{font-size:9px;}
+</style>
+</head>
+<body class="theme-green">
+<div id="app">
+  <header>
+    <div>
+      <h1 id="header-title">Senderos</h1>
+      <div class="sub" id="header-sub">Your map, your trails</div>
+    </div>
+    <div class="avatar">F</div>
+  </header>
+
+  <main>
+    <!-- MAP / RECORD / PLAN VIEW -->
+    <section class="view active" id="view-map">
+      <div class="search-wrap">
+        <div class="search-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" id="search-input" placeholder="Search a place…" autocomplete="off">
+          <button id="btn-search">Search</button>
+        </div>
+        <div class="search-results" id="search-results"></div>
+      </div>
+
+      <div class="activity-row" id="activity-row"></div>
+      <div class="mode-tabs">
+        <div class="mode-tab active" data-mode="record">Record</div>
+        <div class="mode-tab" data-mode="plan">Plan</div>
+      </div>
+
+      <div class="map-wrap">
+        <div id="map"></div>
+        <button class="map-fab" id="btn-locate" title="Center on my location" aria-label="Center on my location">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        </button>
+        <button class="map-fab" id="btn-trails-toggle" title="Show mapped trails" aria-label="Show mapped trails">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6 l6 -2 6 2 6 -2 v16 l-6 2 -6 -2 -6 2 Z"/><path d="M9 4 v16 M15 6 v16"/></svg>
+        </button>
+        <button class="map-fab" id="btn-download-area" title="Download this area for offline use" aria-label="Download this area for offline use">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 19h14"/></svg>
+        </button>
+        <button class="map-fab" id="btn-local-map-toggle" title="Show imported local map" aria-label="Show imported local map" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7 L12 3 L21 7 L12 11 Z"/><path d="M3 12 L12 16 L21 12"/><path d="M3 17 L12 21 L21 17"/></svg>
+        </button>
+        <div class="plan-banner" id="plan-banner" style="display:none;">Tap the map to add points</div>
+      </div>
+
+      <!-- recording stats -->
+      <div class="stat-bar" id="stat-bar" style="display:none;">
+        <div class="stat"><b id="stat-dist">0.00 km</b><span>Distance</span></div>
+        <div class="stat"><b id="stat-time">00:00:00</b><span>Time</span></div>
+        <div class="stat"><b id="stat-pace">--:--</b><span>Pace /km</span></div>
+      </div>
+      <div class="elev-box" id="elev-box" style="display:none;">
+        <div class="row1"><b>Elevation profile</b><span id="elev-figures">+0 m / -0 m</span></div>
+        <svg width="100%" height="40" viewBox="0 0 320 40" preserveAspectRatio="none" id="elev-svg"></svg>
+      </div>
+
+      <!-- plan stats -->
+      <div class="stat-bar" id="plan-stat-bar" style="display:none;">
+        <div class="stat"><b id="plan-dist">0.00 km</b><span>Planned distance</span></div>
+        <div class="stat"><b id="plan-points">0</b><span>Points</span></div>
+      </div>
+
+      <!-- record controls -->
+      <div class="controls" id="controls-idle">
+        <button class="btn-primary" id="btn-start">▶ Start recording</button>
+      </div>
+      <div class="controls" id="controls-recording" style="display:none;">
+        <button class="btn-secondary" id="btn-pause">⏸ Pause</button>
+        <button class="btn-danger" id="btn-stop">⏹ Finish</button>
+      </div>
+
+      <!-- plan controls -->
+      <div class="controls" id="controls-plan" style="display:none;">
+        <button class="btn-secondary" id="btn-plan-undo">Undo point</button>
+        <button class="btn-primary" id="btn-plan-save" disabled>Save route</button>
+      </div>
+    </section>
+
+    <!-- HISTORY VIEW -->
+    <section class="view" id="view-history">
+      <div class="view-header"><h2>My Trails</h2><div class="sub" id="history-count"></div></div>
+      <div class="filter-row" id="filter-row"></div>
+      <div id="history-list"></div>
+    </section>
+
+    <!-- STATS VIEW -->
+    <section class="view" id="view-stats">
+      <div class="view-header"><h2>Stats</h2><div class="sub">Your trekking, bike &amp; running numbers</div></div>
+      <div id="stats-content" style="flex:1;overflow-y:auto;padding:4px 20px 20px;"></div>
+    </section>
+
+    <!-- SETTINGS VIEW -->
+    <section class="view" id="view-settings">
+      <div class="view-header"><h2>Settings</h2><div class="sub">Personalize your app</div></div>
+
+      <div class="settings-section">
+        <div class="settings-label">Visual style</div>
+        <div id="theme-options"></div>
+      </div>
+
+      <div class="settings-section tight">
+        <div class="settings-label">Data</div>
+        <button class="settings-btn" id="btn-import-gpx">Import GPX file</button>
+        <button class="settings-btn" id="btn-export-all">Export all trails (backup)</button>
+        <button class="settings-btn" id="btn-restore-backup">Restore backup</button>
+        <button class="danger-btn" id="btn-clear-data">Delete all saved trails</button>
+        <input type="file" id="file-import-gpx" accept=".gpx" style="display:none;">
+        <input type="file" id="file-restore-backup" accept=".json" style="display:none;">
+      </div>
+
+      <div class="settings-section tight">
+        <div class="settings-label">Offline maps</div>
+        <div class="settings-note">Download the map area you're viewing so it still shows while you're out of signal. Use the download button on the map screen. Downloads are capped to keep things light on the free map service.</div>
+        <div class="offline-summary"><span>Cached offline tiles</span><b id="offline-tile-count">0</b></div>
+        <button class="danger-btn" id="btn-clear-offline">Clear offline maps</button>
+      </div>
+
+      <div class="settings-section tight">
+        <div class="settings-label">Local map file</div>
+        <div class="settings-note">Import a raster <b>.pmtiles</b> map file from your device to view it as a layer on the map — fully offline, read straight from the file. It isn't stored in the app, so you'll need to pick the file again each time you reopen Senderos. Vector .pmtiles files aren't supported.</div>
+        <div class="offline-summary" id="local-map-summary" style="display:none;"><span id="local-map-name">—</span><b id="local-map-status"></b></div>
+        <button class="settings-btn" id="btn-import-pmtiles">Import local map file (.pmtiles)</button>
+        <input type="file" id="file-import-pmtiles" accept=".pmtiles" style="display:none;">
+      </div>
+    </section>
+  </main>
+
+  <nav>
+    <button class="nav-btn active" data-view="map">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3 L3 6 v15 l6 -3 6 3 6 -3 V3 l-6 3 -6 -3 Z"/><path d="M9 3 v15 M15 6 v15"/></svg>
+      Map
+    </button>
+    <button class="nav-btn" data-view="history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      My Trails
+    </button>
+    <button class="nav-btn" data-view="stats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M11 20V4M18 20v-7"/></svg>
+      Stats
+    </button>
+    <button class="nav-btn" data-view="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+  </nav>
+</div>
+
+<div class="modal-backdrop" id="save-modal">
+  <div class="modal">
+    <h2>Save trail</h2>
+    <input type="text" id="route-name-input" placeholder="Trail name" maxlength="60">
+    <div class="row">
+      <button class="btn-secondary" id="btn-discard">Discard</button>
+      <button class="btn-primary" id="btn-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="plan-save-modal">
+  <div class="modal">
+    <h2>Save planned route</h2>
+    <input type="text" id="plan-name-input" placeholder="Route name" maxlength="60">
+    <div class="row">
+      <button class="btn-secondary" id="btn-plan-discard">Cancel</button>
+      <button class="btn-primary" id="btn-plan-confirm">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="view-route-modal">
+  <div class="modal">
+    <h2 id="vr-title">Trail</h2>
+    <p id="vr-meta"></p>
+    <div class="row">
+      <button class="btn-secondary" id="btn-export-gpx">Export GPX</button>
+      <button class="btn-primary" id="btn-close-view">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="import-modal">
+  <div class="modal">
+    <h2>Import GPX file</h2>
+    <input type="text" id="import-name-input" placeholder="Trail name" maxlength="60">
+    <select id="import-activity-select">
+      <option value="trekking">Trekking</option>
+      <option value="bike">Bike</option>
+      <option value="running">Running</option>
+    </select>
+    <div class="row">
+      <button class="btn-secondary" id="btn-import-cancel">Cancel</button>
+      <button class="btn-primary" id="btn-import-confirm">Import</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="offline-modal">
+  <div class="modal">
+    <h2 id="offline-modal-title">Download this area?</h2>
+    <p id="offline-modal-body"></p>
+    <div class="progress-track" id="offline-progress-track" style="display:none;"><div class="progress-fill" id="offline-progress-fill"></div></div>
+    <div class="row">
+      <button class="btn-secondary" id="btn-offline-cancel">Cancel</button>
+      <button class="btn-primary" id="btn-offline-confirm">Download</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/pmtiles/pmtiles.js"></script>
+<script src="geo.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
