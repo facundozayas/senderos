@@ -2,7 +2,6 @@
 
 ## 1. Visión del producto
 
-Senderos es una app tipo Komoot para descubrir, planificar y registrar rutas de trekking/ciclismo/running: mapa, perfil de elevación, GPS tracking en vivo, historial y stats.
 Senderos es una app para descubrir, planificar y registrar rutas de trekking/ciclismo/running: mapa, perfil de elevación, GPS tracking en vivo, historial y stats.
 
 **Usuario objetivo:** el propio usuario, uso personal (no multiusuario, no backend con cuentas).
