@@ -37,7 +37,7 @@
   ];
 
   const THEMES = [
-    { id: "green", name: "Outdoor green", desc: "Warm, Komoot-style", swatch: ["#2f6b4f", "#f6f4ef", "#b3432c"] },
+    { id: "green", name: "Outdoor green", desc: "Warm, trail-map style", swatch: ["#2f6b4f", "#f6f4ef", "#b3432c"] },
     { id: "light", name: "Light minimal", desc: "White, map-focused", swatch: ["#ffffff", "#16181a", "#2f6460"] },
     { id: "dark", name: "Dark", desc: "Night mode, amber accent", swatch: ["#121316", "#f4b942", "#191b1f"] },
   ];
