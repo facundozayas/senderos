@@ -1,58 +1,77 @@
 # Senderos
 
-Una app tipo Komoot para descubrir, planificar y registrar rutas de trekking, bici y running: mapa, perfil de elevación, grabación por GPS en vivo, historial y estadísticas — todo en el navegador, sin cuenta ni backend.
+A personal app for discovering, planning, and recording trekking, biking, and running routes: map, elevation profile, live GPS recording, history, and stats — all in the browser, no account, no backend.
 
-## Características
+## Features
 
-- **Mapa** con OpenStreetMap (Leaflet) y una capa opcional de senderos mapeados (Waymarked Trails).
-- **Buscador de lugares** vía Nominatim.
-- **Grabar una ruta** en vivo con el GPS del celular, con distancia, tiempo, ritmo y perfil de elevación en tiempo real.
-- **Planificar una ruta** tocando el mapa, sin necesidad de salir a caminarla primero.
-- **Import/export en GPX**, más backup/restore completo en JSON.
-- **Mapas offline**: descargá el área que estás viendo para verla sin señal, o importá un archivo `.pmtiles` raster local.
-- **Historial y stats**: rutas guardadas, filtros por actividad, promedios, totales por período y récords personales.
-- **Tres temas visuales** (verde outdoor, claro, oscuro).
-- **Recuperación automática**: si la app se cierra en medio de una grabación, al reabrirla te ofrece recuperarla.
+- **Map** powered by OpenStreetMap (via Leaflet), with an optional mapped-trails overlay (Waymarked Trails).
+- **Place search** via Nominatim.
+- **Record a route** live with your phone's GPS, with distance, time, pace, and elevation profile updating in real time.
+- **Plan a route** by tapping the map, no need to walk it first.
+- **GPX import/export**, plus full JSON backup/restore.
+- **Offline maps**: download the area you're viewing for use without signal, or import a local raster `.pmtiles` file.
+- **History and stats**: saved routes, activity filters, averages, per-period totals, and personal records.
+- **Three visual themes** (outdoor green, light, dark).
+- **Crash recovery**: if the app closes mid-recording, it offers to recover the in-progress track on reopen.
 
-Todos los datos se guardan en `localStorage` del navegador — no hay servidor, no hay cuenta, no hay costo.
+All data is stored in the browser's `localStorage` — there's no server, no account, and no cost to run.
 
-## Cómo correrla
+## Running it locally
 
-Es una PWA vanilla (HTML/CSS/JS), sin build step. Para probarla localmente hace falta servirla por HTTP (no `file://`, porque el service worker y algunas APIs del navegador lo requieren):
+This is a vanilla PWA (HTML/CSS/JS), no build step. Serve it over HTTP (not `file://` — the service worker and some browser APIs require it):
 
 ```bash
 cd extracted
 python -m http.server 8080
 ```
 
-Y abrís `http://localhost:8080` en el navegador. También podés instalarla como PWA desde ahí (Agregar a pantalla de inicio / Instalar app).
+Then open `http://localhost:8080`. You can also install it as a PWA from there (Add to Home Screen / Install app).
 
-## Estructura del proyecto
+## Project structure
 
 ```
 extracted/
-  index.html        UI y estilos
-  app.js            Lógica de la app (estado, mapa, grabación, historial, stats)
-  geo.js            Lógica geoespacial y GPX pura, testeable (window.SenderosCore)
-  service-worker.js Cache del app shell + tiles offline
-  manifest.json     Manifest de PWA
-  vendor/           Leaflet y pmtiles.js vendorizados (sin CDN)
-tests/              Suite de tests (Node, node:test + jsdom)
-.claude/skills/     Guías de trabajo para Claude Code sobre este proyecto
-CLAUDE.md           Instructivo del proyecto para trabajar con Claude Code
+  index.html        UI markup and styles
+  app.js             App logic (state, map, recording, history, stats)
+  geo.js             Pure geospatial/GPX logic, unit-testable (window.SenderosCore)
+  service-worker.js  App-shell cache + offline tiles
+  manifest.json      PWA manifest
+  vendor/            Leaflet and pmtiles.js, vendored locally (no CDN)
+tests/               Test suite (Node, node:test + jsdom)
+.claude/skills/      Working guidelines for Claude Code on this project
+CLAUDE.md            Project instructions for working with Claude Code
 ```
 
 ## Tests
 
-La lógica geoespacial y de GPX (distancia, elevación, parseo/generación de GPX, validación de ruta) tiene test unitario. Requiere Node.js 18+:
+Geospatial and GPX logic (distance, elevation, GPX parsing/generation, route validation) has unit tests. Requires Node.js 18+:
 
 ```bash
 npm install
 npm test
 ```
 
-`jsdom` es devDependency solo para los tests que necesitan `DOMParser`/`document` — la app en sí no tiene ninguna dependencia ni build step.
+`jsdom` is a devDependency used only by the tests that need `DOMParser`/`document` — the app itself ships with zero dependencies and no build step.
 
-## Stack
+## Data sources & attribution
 
-HTML/CSS/JS vanilla · [Leaflet](https://leafletjs.com/) · [OpenStreetMap](https://www.openstreetmap.org/) · [Waymarked Trails](https://waymarkedtrails.org/) · [Nominatim](https://nominatim.org/) · [PMTiles](https://github.com/protomaps/PMTiles)
+- Map tiles and trail data: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, licensed under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/). Attribution is shown on the map itself, as required by the license.
+- Trail overlay: [Waymarked Trails](https://waymarkedtrails.org/).
+- Place search: [Nominatim](https://nominatim.org/), used per its [usage policy](https://operations.osmfoundation.org/policies/nominatim/) (the app rate-limits searches to comply with the 1 request/second limit).
+- Mapping library: [Leaflet](https://leafletjs.com/) (vendored, [BSD-2-Clause](https://github.com/Leaflet/Leaflet/blob/main/LICENSE)).
+- Local map file support: [PMTiles](https://github.com/protomaps/PMTiles) (vendored, [BSD-3-Clause](https://github.com/protomaps/PMTiles/blob/main/LICENSE)).
+- Fonts loaded from Google Fonts (see Privacy below).
+
+## Privacy
+
+There's no backend and no analytics. Data you record or import stays in your browser's `localStorage` on your own device — it's never sent anywhere by the app itself. That said, a few things do leave your device as part of normal use, to third-party services this app depends on:
+
+- Anything you type into the place search is sent to Nominatim's public API.
+- The map view (as tile coordinates, not your exact location) is requested from OpenStreetMap's and Waymarked Trails' tile servers as you pan/zoom.
+- Page fonts are loaded from Google Fonts, which — like any Google Fonts embed — can see the requesting IP address.
+
+None of this is unusual for a map-based web app, but it's worth knowing if you plan to use this somewhere privacy-sensitive.
+
+## License
+
+No license has been chosen yet for this repository, so by default all rights are reserved — even though the repo is public, that doesn't grant permission to reuse the code. If you want others to be able to use, modify, or redistribute it, add a `LICENSE` file (e.g. MIT) before relying on that.
